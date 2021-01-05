@@ -22,11 +22,20 @@
 // TODO: Override chat usernames to better readability so I won't need to use the
 //       Stylus CSS script.
 
+// Install Google's user agent switcher extension and use iPhone 6
+// https://chrome.google.com/webstore/detail/user-agent-switcher-for-c/djflhoibgkdhkhhcedjiklpkjnoahfmg
+
+// Best if used with Google Chrome shortcut target options.
+// On Windows, find the Google Chrome shortcut.
+// Right-click it and select Properties.
+// Make sure the two options (the double dash part) is added.
+// "...\Application\chrome.exe" --auto-open-devtools-for-tabs --autoplay-policy=no-user-gesture-required
+
 //////////////////////////////////////////////////////////////////////
-// User set preferences (OK to change). //////////////////////////////
+// User set preferences (OK to change values). ///////////////////////
 //////////////////////////////////////////////////////////////////////
 const USER_CONFIG = {
-    showChat: false, // boolean
+    showChat: true, // boolean
     showChatInfo: false, // boolean
     autoUnmute: true, // boolean
     autoClickVideoToPause: true, // boolean
@@ -256,33 +265,49 @@ function addChat() {
 
 function handleExpandChatButton() {
     if (IS_CHAT_MINIMAL === true) {
-        expandChat();
-    } else {
         shrinkChat();
+    } else {
+        expandChat();
     }
 }
 
 // TODO: Rename related functions to be shrink/expand? This hides the top and bottom
 // chat sections (stream info, tags, chat input).
 function expandChat() {
-    const chatTopInfoSelector = "div[class='tw-border-b tw-c-background-base']";
-    const chatTopInfoNode = document.querySelector(chatTopInfoSelector);
-    chatTopInfoNode.style.cssText = "display: block;";
-
-    const chatInputSelector = "div[class='tw-flex-shrink-0']";
-    const chatInputNode = document.querySelector(chatInputSelector);
-    chatInputNode.style.cssText = "display: block;";
-
-    IS_CHAT_MINIMAL = false;
+    chatTop(false);
+    chatBottom(false);
+    IS_CHAT_MINIMAL = true;
 }
 
 // TODO: Rename related functions to be shrink/expand? This restores the top and bottom
 // chat sections (stream info, tags, chat input).
 function shrinkChat() {
+    chatTop(true);
+    chatBottom(true);
+    IS_CHAT_MINIMAL = false;
+}
+
+function chatTop(show=true) {
+    let displayValue = (show === true) ? "block" : "none";
+
     try {
-        shrinkChat();
+        const chatTopInfoSelector = "div[class='tw-border-b tw-c-background-base']";
+        const chatTopInfoNode = document.querySelector(chatTopInfoSelector);
+        chatTopInfoNode.style.cssText = `display: ${displayValue};`;
     } catch (error) {
-        console.error("Shrink chat failed.");
+        console.error("Chat top toggle failed.", error);
+    }
+}
+
+function chatBottom(show=true) {
+    let displayValue = (show === true) ? "block" : "none";
+
+    try {
+        const chatInputSelector = "div[class='tw-flex-shrink-0']";
+        const chatInputNode = document.querySelector(chatInputSelector);
+        chatInputNode.style.cssText = `display: ${displayValue};`;
+    } catch (error) {
+        console.error("Chat bottom toggle failed.", error);
     }
 }
 
@@ -543,7 +568,7 @@ function removeInAppButton() {
 
         openInAppButtonNode.remove();
     } catch (error) {
-        console.error("error", error);
+        console.error("Failed to remove 'Open in App' button", error);
     }
 }
 
