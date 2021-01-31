@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Better Mobile Twitch
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Originally made to disable click-to-pause video
 // @author       You
 // @match        https://m.twitch.tv/*
@@ -53,7 +53,7 @@ const USER_CONFIG = {
 
 const CSS = `
 .default {
-background-color: rgba(145, 71, 255, 0.08);
+background-color: rgba(145, 71, 255, 0.2);
 z-index: 1;
 position: absolute;
 top: 10px;
@@ -246,8 +246,8 @@ function addNavBar() {
 }
 
 function removeChat() {
-    const chatSelector = "ScSecondaryContent-sc-1swxymf-2 gbWnuH";
-    const chatNode = document.getElementsByClassName(chatSelector)[0];
+    const chatSelector = "section[class^='ScSecondaryContent-sc-1swxymf-2']";
+    const chatNode = document.querySelector(chatSelector);
     if (chatNode === null) return console.error("Chat section is null.");
 
     chatNode.remove();
@@ -255,8 +255,8 @@ function removeChat() {
 }
 
 function addChat() {
-    const mainContentSelector = "ScPlayerLayout-sc-1swxymf-0 kfzBMr";
-    const mainContentNode = document.getElementsByClassName(mainContentSelector)[0];
+    const mainContentSelector = "div[class^='ScPlayerLayout-sc-1swxymf-0']";
+    const mainContentNode = document.querySelector(mainContentSelector);
     if (mainContentNode === null) return console.error("Main content node is null.");
 
     mainContentNode.appendChild(CHAT_NODE);
@@ -291,7 +291,7 @@ function chatTop(show=true) {
     let displayValue = (show === true) ? "block" : "none";
 
     try {
-        const chatTopInfoSelector = "div[class='tw-border-b tw-c-background-base']";
+        const chatTopInfoSelector = "div[class='tw-border-b tw-pd-1']";
         const chatTopInfoNode = document.querySelector(chatTopInfoSelector);
         chatTopInfoNode.style.cssText = `display: ${displayValue};`;
     } catch (error) {
@@ -314,7 +314,7 @@ function chatBottom(show=true) {
 // Move video to take up the entire width when chat is removed. It also horizontally
 // centers the video.
 function moveVideo() {
-    const videoSelector = "section[class='ScPlayerContainer-sc-1swxymf-1 iNvFnX']";
+    const videoSelector = "section[class^='ScPlayerContainer-sc-1swxymf-1']";
     const videoNode = document.querySelector(videoSelector);
     if (videoNode === null) return console.error("Video node is null.");
 
@@ -330,6 +330,7 @@ function moveVideo() {
                  ${height}
                  ${width}
                  flex-shrink: 0;
+                 padding-bottom: 0px !important;
                 `;
 
     videoNode.style.cssText = css;
@@ -337,7 +338,7 @@ function moveVideo() {
 
 // Move entire content up after removing top navigation bar.
 function moveContent() {
-    const contentNode = document.getElementsByClassName("fSQzTO")[0];
+    const contentNode = document.querySelector("main[class^='ScMain-iwf30a-0']");
     if (contentNode === null) return console.error("Content node is null.");
 
     if (IS_NAVBAR_SHOWING === true) {
@@ -401,7 +402,7 @@ function createToggleChatButton() {
     btn.innerHTML = "Chat";
     btn.title = "Toggle Chat";
     const css = `border-radius: 4px;
-                 padding: 6px 12px;
+                 padding: 6px 6px;
                  margin-left: 6px;
                  font-weight: bold;
                  user-select: none;
@@ -437,12 +438,12 @@ function createExpandChatButton() {
     const btn = document.createElement("button");
     btn.id = "expand-chat";
     btn.type = "button";
-    btn.innerHTML = "Info";
+    btn.innerHTML = "i";
     btn.title = "Toggle chat input and chat top stream info";
     const css = `margin-left: 6px;
                  /*background-color: #9147ff;*/
                  border-radius: 4px;
-                 padding: 6px 12px;
+                 padding: 6px 6px;
                  font-weight: bold;
                  user-select: none;
                  -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
@@ -460,7 +461,7 @@ function createOutgoingChatButton() {
     btn.innerHTML = "+";
     btn.title = "Open chat in new tab";
     const css = `border-radius: 4px;
-                 padding: 6px 12px;
+                 padding: 6px 6px;
                  font-weight: bold;
                  user-select: none;
                  background-color: #4a4a4a;
@@ -626,8 +627,8 @@ function getUnmuteNode() {
 }
 
 function storeChatInState() {
-    const chatSelector = "ScSecondaryContent-sc-1swxymf-2 gbWnuH";
-    const chatNode = document.getElementsByClassName(chatSelector)[0];
+    const chatSelector = "section[class^='ScSecondaryContent-sc-1swxymf-2']";
+    const chatNode = document.querySelector(chatSelector);
     if (chatNode === null) return console.error("Chat node is null.");
 
     CHAT_NODE = chatNode;
