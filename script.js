@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Better Mobile Twitch
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  Originally made to disable click-to-pause video
 // @author       You
 // @match        https://m.twitch.tv/*
@@ -12,7 +12,8 @@
 // DONE: Initialize from state instead so you can have defaults to set in the
 //       state if you wanna start the stream with the chat off.
 // DONE: Button colors are buggy when toggled. Requires redesign--lots of refactoring.
-// DONE: Handle popout chat.
+// DONE: Handle popout chat
+// DONE: 2021-02-28: Add a transparent button for chat on player corner.
 
 // TODO: DRY review: Refactor to a function to handle creating all elements like
 //       buttons and its onclick handlers.
@@ -35,7 +36,7 @@
 // User set preferences (OK to change values). ///////////////////////
 //////////////////////////////////////////////////////////////////////
 const USER_CONFIG = {
-    showChat: true, // boolean
+    showChat: false, // boolean
     showChatInfo: false, // boolean
     autoUnmute: true, // boolean
     autoClickVideoToPause: true, // boolean
@@ -66,12 +67,38 @@ border-radius: 4px;
 padding: 1px 8px;
 color: rgba(255, 255, 255, 0);
 }
-
 .default:hover {
 background-color: rgba(145, 71, 255, 0.5);
 z-index: 1;
 position: absolute;
 top: 10px;
+right: 10px;
+border-radius: 4px;
+user-select: none;
+-webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+border-radius: 4px;
+padding: 1px 8px;
+color: inherit;
+}
+.default2 {
+background-color: rgba(145, 71, 255, 0.2);
+z-index: 1;
+position: absolute;
+top: 40px;
+right: 10px;
+border-radius: 4px;
+font-weight: bold;
+user-select: none;
+-webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+border-radius: 4px;
+padding: 1px 8px;
+color: rgba(255, 255, 255, 0);
+}
+.default2:hover {
+background-color: rgba(145, 71, 255, 0.5);
+z-index: 1;
+position: absolute;
+top: 40px;
 right: 10px;
 border-radius: 4px;
 user-select: none;
@@ -117,31 +144,36 @@ function main() {
     observeInternalPageNavigation();
 }
 
-function handlePopoutChat() {
+async function handlePopoutChat() {
     // Remove chat header.
-    if (USER_CONFIG.removePopoutChatHeader) {
-        let popOutChatHeaderSelector = "stream-chat-header tw-align-items-center tw-border-b";
-        popOutChatHeaderSelector += " tw-c-background-base tw-flex tw-flex-shrink-0 tw-full-width";
-        popOutChatHeaderSelector += " tw-justify-content-center tw-pd-l-1 tw-pd-r-1";
-        removeNode("div", "class", popOutChatHeaderSelector, "Popout Chat Header");
-    }
+//     if (USER_CONFIG.removePopoutChatHeader) {
+//         let popOutChatHeaderSelector = "stream-chat-header tw-align-items-center tw-border-b";
+//         popOutChatHeaderSelector += " tw-c-background-base tw-flex tw-flex-shrink-0 tw-full-width";
+//         popOutChatHeaderSelector += " tw-justify-content-center tw-pd-l-1 tw-pd-r-1";
+//         removeNode("div", "class", popOutChatHeaderSelector, "Popout Chat Header");
+//     }
 
     // Remove chat leaderboard.
-    if (USER_CONFIG.removePopoutChatLeaderboard) {
-        let popoutChatLeaderboardSelector = "channel-leaderboard tw-z-default";
-        removeNode("div", "class", popoutChatLeaderboardSelector, "Popout Chat Leaderboard");
-    }
+//     if (USER_CONFIG.removePopoutChatLeaderboard) {
+//         const popoutChatLeaderboardSelector = "div[class^='channel-leaderboard tw-z-default']";
+//         const popoutChatLeaderboardNode = document.querySelector(popoutChatLeaderboardSelector);
+//         popoutChatLeaderboardNode.style.cssText = "display: none !important";
+//     }
 
     // Remove poll.
-    if (USER_CONFIG.removePopoutChatPoll) {
-        let popoutChatPollSelector = "tw-absolute tw-full-width tw-z-above";
-        removeNode("div", "class", popoutChatPollSelector, "Popout Chat Poll");
-    }
+//     if (USER_CONFIG.removePopoutChatPoll) {
+//         let popoutChatPollSelector = "tw-absolute tw-full-width tw-z-above";
+//         removeNode("div", "class", popoutChatPollSelector, "Popout Chat Poll");
+//     }
 
     // Remove chat input.
     if (USER_CONFIG.removePopoutChatInput) {
-        let popoutChatInputSelector = "chat-input tw-block tw-pd-b-1 tw-pd-x-1";
-        removeNode("div", "class", popoutChatInputSelector, "Popout Chat Input");
+        const popoutChatInputSelector = "div[class^='chat-input']";
+        const popoutChatNode = document.querySelector(popoutChatInputSelector);
+        popoutChatNode.style.cssText = "display: none !important";
+        // Chat needs this node to show chat. Adding a pause works, but hiding it
+        // is better.
+//         removeNode("div", "class", popoutChatInputSelector, "Popout Chat Input");
     }
 }
 
@@ -170,6 +202,7 @@ function handleMobileTwitch() {
     toggleChatButton = createToggleChatButton();
     expandChatButton = createExpandChatButton();
     toggleNavBarButton = createToggleNavBarButton();
+    toggleChatButtonSm = createToggleChatButtonSm();
     // Non-storing nodes
     const outgoingChatButton = createOutgoingChatButton();
 
@@ -177,6 +210,7 @@ function handleMobileTwitch() {
     addToggleChatButton();
     addExpandChatButton();
     addToggleNavBarButton();
+    addToggleChatButtonSm();
     addOutgoingChatButton(outgoingChatButton);
 
     // Append my CSS style node to head.
@@ -209,10 +243,10 @@ function handleOutgoingChatButton() {
 function handleToggleChatButton() {
     if (IS_CHAT_SHOWING === true) {
         removeChat();
-        removeExpandChatButton();
+//         removeExpandChatButton();
     } else {
         addChat(CHAT_NODE);
-        addExpandChatButton();
+//         addExpandChatButton();
     }
 
     moveVideo();
@@ -261,6 +295,14 @@ function addChat() {
 
     mainContentNode.appendChild(CHAT_NODE);
     IS_CHAT_SHOWING = true;
+    
+    if (IS_CHAT_MINIMAL === true) {
+        chatTop(true);
+        chatBottom(true);
+    } else {
+        chatTop(false);
+        chatBottom(false);
+    }
 }
 
 function handleExpandChatButton() {
@@ -288,7 +330,7 @@ function shrinkChat() {
 }
 
 function chatTop(show=true) {
-    let displayValue = (show === true) ? "block" : "none";
+    let displayValue = (show === true) ? "none" : "block";
 
     try {
         const chatTopInfoSelector = "div[class='tw-border-b tw-pd-1']";
@@ -300,7 +342,7 @@ function chatTop(show=true) {
 }
 
 function chatBottom(show=true) {
-    let displayValue = (show === true) ? "block" : "none";
+    let displayValue = (show === true) ? "none" : "block";
 
     try {
         const chatInputSelector = "div[class='tw-flex-shrink-0']";
@@ -434,6 +476,25 @@ function createToggleNavBarButton() {
     return btn;
 }
 
+function createToggleChatButtonSm() {
+    let btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "toggle-chat-btn";
+    btn.className = "default2";
+    btn.innerHTML = ">";
+    /*const css = `border-radius: 4px;
+                 padding: 6px 12px;
+                 font-weight: bold;
+                 user-select: none;
+                 background-color: #4a4a4a;
+                 -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+                `;*/
+    //btn.style.cssText = css;
+    btn.onclick = handleToggleChatButton;
+
+    return btn;
+}
+
 function createExpandChatButton() {
     const btn = document.createElement("button");
     btn.id = "expand-chat";
@@ -537,6 +598,14 @@ function addToggleNavBarButton() {
     videoWrapperNode.appendChild(toggleNavBarButton);
 }
 
+function addToggleChatButtonSm() {
+    const videoWrapperSelector = "pulsar-mp-container";
+    const videoWrapperNode = document.getElementsByClassName(videoWrapperSelector)[0];
+    if (videoWrapperNode === null) return console.error("videoWrapperNode node is null.");
+
+    videoWrapperNode.appendChild(toggleChatButtonSm);
+}
+
 function addToggleChatButton() {
     const navButtonSelector = "tw-inline-flex tw-mg-r-1";
     const navButtonWrapperNode = document.getElementsByClassName(navButtonSelector)[0];
@@ -635,7 +704,7 @@ function storeChatInState() {
 }
 
 function storeNavBarInState() {
-    const navBarSelector = "nav[class='mw-top-nav tw-absolute tw-align-items-center tw-c-background-base tw-elevation-2 tw-flex tw-full-width tw-left-0 tw-right-0 tw-top-0 tw-z-above']";
+    const navBarSelector = "nav[class^='ScTopNavContainer-sc-']";
     const navBarNode = document.querySelector(navBarSelector);
     if (navBarNode === null) return console.error("Nav bar node is null.");
 
