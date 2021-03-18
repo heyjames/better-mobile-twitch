@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Better Mobile Twitch
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.3.1
 // @description  Originally made to disable click-to-pause video
 // @author       You
 // @match        https://m.twitch.tv/*
@@ -36,13 +36,13 @@
 // User set preferences (OK to change values). ///////////////////////
 //////////////////////////////////////////////////////////////////////
 const USER_CONFIG = {
-    showChat: false, // boolean
+    showChat: true, // boolean
     showChatInfo: false, // boolean
     autoUnmute: true, // boolean
     autoClickVideoToPause: true, // boolean
     showNavBar: false, // boolean
-    unmuteAttempts: 20, // integer
-    unmuteInterval: 200, // integer (milliseconds)
+    unmuteAttempts: 30, // integer
+    unmuteInterval: 400, // integer (milliseconds)
     removePopoutChatHeader: true, // boolean
     removePopoutChatLeaderboard: true, // boolean
     removePopoutChatPoll: true, // boolean
@@ -53,7 +53,7 @@ const USER_CONFIG = {
 //////////////////////////////////////////////////////////////////////
 
 const CSS = `
-.default {
+.overlay-button-navbar {
 background-color: rgba(145, 71, 255, 0.2);
 z-index: 1;
 position: absolute;
@@ -67,7 +67,7 @@ border-radius: 4px;
 padding: 1px 8px;
 color: rgba(255, 255, 255, 0);
 }
-.default:hover {
+.overlay-button-navbar:hover {
 background-color: rgba(145, 71, 255, 0.5);
 z-index: 1;
 position: absolute;
@@ -80,7 +80,7 @@ border-radius: 4px;
 padding: 1px 8px;
 color: inherit;
 }
-.default2 {
+.overlay-button-chat {
 background-color: rgba(145, 71, 255, 0.2);
 z-index: 1;
 position: absolute;
@@ -94,7 +94,7 @@ border-radius: 4px;
 padding: 1px 8px;
 color: rgba(255, 255, 255, 0);
 }
-.default2:hover {
+.overlay-button-chat:hover {
 background-color: rgba(145, 71, 255, 0.5);
 z-index: 1;
 position: absolute;
@@ -111,7 +111,7 @@ color: inherit;
 
 // Internal state (Developer use only).
 let IS_CHAT_SHOWING = true;
-let IS_CHAT_MINIMAL = false;
+let IS_CHAT_MINIMAL = true;
 let IS_NAVBAR_SHOWING = true;
 let HAS_UNMUTED = false;
 let UNMUTE_INTERVAL = null;
@@ -122,6 +122,7 @@ let NAVBAR_NODE = null;
 let toggleChatButton = null;
 let expandChatButton = null;
 let toggleNavBarButton = null;
+let toggleChatButtonSm = null;
 
 (function() {
     'use strict';
@@ -294,8 +295,9 @@ function addChat() {
     if (mainContentNode === null) return console.error("Main content node is null.");
 
     mainContentNode.appendChild(CHAT_NODE);
+
     IS_CHAT_SHOWING = true;
-    
+
     if (IS_CHAT_MINIMAL === true) {
         chatTop(true);
         chatBottom(true);
@@ -306,7 +308,7 @@ function addChat() {
 }
 
 function handleExpandChatButton() {
-    if (IS_CHAT_MINIMAL === true) {
+    if (IS_CHAT_MINIMAL === false) {
         shrinkChat();
     } else {
         expandChat();
@@ -318,7 +320,7 @@ function handleExpandChatButton() {
 function expandChat() {
     chatTop(false);
     chatBottom(false);
-    IS_CHAT_MINIMAL = true;
+    IS_CHAT_MINIMAL = !IS_CHAT_MINIMAL;
 }
 
 // TODO: Rename related functions to be shrink/expand? This restores the top and bottom
@@ -326,11 +328,11 @@ function expandChat() {
 function shrinkChat() {
     chatTop(true);
     chatBottom(true);
-    IS_CHAT_MINIMAL = false;
+    IS_CHAT_MINIMAL = !IS_CHAT_MINIMAL;
 }
 
 function chatTop(show=true) {
-    let displayValue = (show === true) ? "none" : "block";
+    let displayValue = (show === true) ? "block" : "none";
 
     try {
         const chatTopInfoSelector = "div[class='tw-border-b tw-pd-1']";
@@ -342,7 +344,7 @@ function chatTop(show=true) {
 }
 
 function chatBottom(show=true) {
-    let displayValue = (show === true) ? "none" : "block";
+    let displayValue = (show === true) ? "block" : "none";
 
     try {
         const chatInputSelector = "div[class='tw-flex-shrink-0']";
@@ -461,7 +463,7 @@ function createToggleNavBarButton() {
     let btn = document.createElement("button");
     btn.type = "button";
     btn.id = "toggle-nav-bar";
-    btn.className = "default";
+    btn.className = "overlay-button-navbar";
     btn.innerHTML = "^";
     /*const css = `border-radius: 4px;
                  padding: 6px 12px;
@@ -480,7 +482,7 @@ function createToggleChatButtonSm() {
     let btn = document.createElement("button");
     btn.type = "button";
     btn.id = "toggle-chat-btn";
-    btn.className = "default2";
+    btn.className = "overlay-button-chat";
     btn.innerHTML = ">";
     /*const css = `border-radius: 4px;
                  padding: 6px 12px;
@@ -638,7 +640,16 @@ function removeInAppButton() {
 
         openInAppButtonNode.remove();
     } catch (error) {
-        console.error("Failed to remove 'Open in App' button", error);
+        console.error("Failed to remove 'Open in App 1' button");
+    }
+
+    try {
+        const openInAppSelector2 = "lceoxV";
+        const openInAppButtonNode2 = document.getElementsByClassName(openInAppSelector2)[0];
+        if (openInAppButtonNode2 === null) return console.error("'Open in App' button node is null.");
+        openInAppButtonNode2.style.cssText = "display: none;";
+    } catch (error) {
+        console.error("Failed to remove 'Open in App 2' button");
     }
 }
 
