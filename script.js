@@ -55,7 +55,7 @@ const USER_CONFIG = {
 const CSS = `
 .overlay-button {
 right: 10px;
-background-color: rgba(145, 71, 255, 0.2);
+background-color: rgba(145, 71, 255, 0.1);
 z-index: 1;
 position: absolute;
 border-radius: 4px;
@@ -64,7 +64,7 @@ user-select: none;
 -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
 border-radius: 4px;
 padding: 1px 8px;
-color: rgba(255, 255, 255, 0.2);
+color: rgba(255, 255, 255, 0.1);
 }
 
 .overlay-button:hover {
@@ -113,12 +113,12 @@ let toggleChatButtonSm = null;
 
 function main() {
     // Check if URL is mobile popout chat. The mobile chat doesn't support FFZ and its BTTV addon.
-    const url = window.location.href;
-    const isPopoutChatRegex = /https:\/\/www\.twitch\.tv\/popout\/.*\/chat\?no-mobile-redirect=.*/g;
-    const isPopoutChat = url.match(isPopoutChatRegex);
-    if (isPopoutChat !== null) return Chat.handlePopoutChat();
+    try {
+        if (Page.isPopoutChat() !== null) return Chat.handlePopoutChat();
+    } catch (error) {
+        console.log(error.message);
+    }
 
-    // If URL is mobile Twitch.
     handleMobileTwitch();
 
     // Execute main function again when user navigates from within the page
@@ -178,6 +178,89 @@ function observeInternalPageNavigation() {
     var config = { subtree: false, characterData: false, childList: true };
     observer.observe(target, config);
 }
+
+const Player = function() {
+    async function unmute() {
+        for (let i=0; i<USER_CONFIG.unmuteAttempts; i++) {
+            await Utils.pause(USER_CONFIG.unmuteInterval);
+            const tapToMuteNode = getUnmuteNode();
+
+            if (tapToMuteNode !== null) {
+                tapToMuteNode.click();
+                HAS_UNMUTED = true;
+                console.log(`Successfully unmuted after ${i} tries.`);
+                break;
+            }
+
+            if (i === (USER_CONFIG.unmuteAttempts-1)) return console.error(`Failed to unmute after ${i} tries.`);
+        }
+    }
+
+    // Cannot use getNodeByQuerySelector()
+    function getUnmuteNode() {
+        const tapToMuteSelector = "p[class='tw-c-text-overlay']";
+        const tapToMuteNode = document.querySelector(tapToMuteSelector);
+        // if (!tapToMuteNode) throw new Error("Failed to get unmute node");
+        return tapToMuteNode;
+    }
+
+    function disableClickToPause() {
+        try {
+            const node = Utils.getNodeByClassName("pulsar-mp-container");
+            if (!node) throw new Error("Click to pause node is null.");
+
+            node.onclick = () => false;
+        } catch (error) {
+            console.error("Failed to disable click to video to pause");
+        }
+    }
+
+    // Move video to take up the entire width when chat is removed. It also horizontally
+    // centers the video.
+    function moveVideo() {
+        const videoSelector = "section[class^='ScPlayerContainer-sc-1swxymf-1']";
+        const videoNode = document.querySelector(videoSelector);
+        if (!videoNode) return console.error("Video node is null.");
+
+        let height = (IS_CHAT_SHOWING === true)
+            ? "heightcalc(56.25vw);"
+            : "height: 100% !important;";
+
+        let width = (IS_CHAT_SHOWING === true)
+            ? ""
+            : "width: 100% !important;";
+
+        const css = `background: rgb(24 24 27);
+                     ${height}
+                     ${width}
+                     flex-shrink: 0;
+                     padding-bottom: 0px !important;
+                    `;
+
+        videoNode.style.cssText = css;
+    }
+
+    return {
+        unmute,
+        getUnmuteNode,
+        disableClickToPause,
+        moveVideo
+    }
+}();
+
+
+const Page = function() {
+    function isPopoutChat() {
+        const url = window.location.href;
+        const isPopoutChatRegex = /https:\/\/www\.twitch\.tv\/popout\/.*\/chat\?no-mobile-redirect=.*/g;
+        const isPopoutChat = url.match(isPopoutChatRegex);
+        return isPopoutChat;
+    }
+
+    return {
+        isPopoutChat
+    }
+}();
 
 const Chat = function() {
     function storeChatInState() {
@@ -436,6 +519,7 @@ const Button = function() {
 const Navbar = function() {
     function removeInAppButton() {
         try {
+            return;
             const openInAppButtonNode = Utils.getNodeByClassName("open-in-app");
             if (!openInAppButtonNode) throw new Error("Failed to remove 'Open in App 1' button.");
             openInAppButtonNode.remove();
@@ -444,6 +528,7 @@ const Navbar = function() {
         }
 
         try {
+            return;
             const openInAppButtonNode2 = Utils.getNodeByClassName("ScCoreButton-sc-1qn4ixc-0 ScCoreButtonPrimary-sc-1qn4ixc-1 gJeMUd eBYHwz tw-core-button");
             if (!openInAppButtonNode2) throw new Error("Failed to remove 'Open in App 2' button.");
             openInAppButtonNode2.remove();
@@ -453,11 +538,15 @@ const Navbar = function() {
     }
 
     function remove() {
-        if (NAVBAR_NODE === null) return console.error("Nav bar node is null.");
+        try {
+            if (!NAVBAR_NODE) throw new Error("Nav bar node is null.");
 
-        NAVBAR_NODE.remove();
+            NAVBAR_NODE.remove();
 
-        IS_NAVBAR_SHOWING = false;
+            IS_NAVBAR_SHOWING = false;
+        } catch (error) {
+            console.error(error.message);
+        }
     }
 
     function add() {
@@ -501,77 +590,7 @@ const Navbar = function() {
     }
 }();
 
-const Player = function() {
-    async function unmute() {
-        for (let i=0; i<USER_CONFIG.unmuteAttempts; i++) {
-            const tapToMuteNode = getUnmuteNode();
-            await Utils.pause(USER_CONFIG.unmuteInterval);
-
-            if (tapToMuteNode !== null) {
-                tapToMuteNode.click();
-                HAS_UNMUTED = true;
-                console.log(`Successfully unmuted after ${i} tries.`);
-                break;
-            }
-
-            if (i === (USER_CONFIG.unmuteAttempts-1)) return console.error(`Failed to unmute after ${i} tries.`);
-        }
-    }
-
-    // Cannot use getNodeByQuerySelector()
-    function getUnmuteNode() {
-        const tapToMuteSelector = "p[class='tw-c-text-overlay']";
-        const tapToMuteNode = document.querySelector(tapToMuteSelector);
-        if (tapToMuteNode === null) return null;
-
-        return tapToMuteNode;
-    }
-
-    function disableClickToPause() {
-        try {
-            const node = Utils.getNodeByClassName("pulsar-mp-container");
-            if (!node) throw new Error("Click to pause node is null.");
-
-            node.onclick = () => false;
-        } catch (error) {
-            console.error("Failed to disable click to video to pause");
-        }
-    }
-
-    // Move video to take up the entire width when chat is removed. It also horizontally
-    // centers the video.
-    function moveVideo() {
-        const videoSelector = "section[class^='ScPlayerContainer-sc-1swxymf-1']";
-        const videoNode = document.querySelector(videoSelector);
-        if (!videoNode) return console.error("Video node is null.");
-
-        let height = (IS_CHAT_SHOWING === true)
-            ? "heightcalc(56.25vw);"
-            : "height: 100% !important;";
-
-        let width = (IS_CHAT_SHOWING === true)
-            ? ""
-            : "width: 100% !important;";
-
-        const css = `background: rgb(24 24 27);
-                     ${height}
-                     ${width}
-                     flex-shrink: 0;
-                     padding-bottom: 0px !important;
-                    `;
-
-        videoNode.style.cssText = css;
-    }
-
-    return {
-        unmute,
-        getUnmuteNode,
-        disableClickToPause,
-        moveVideo
-    }
-}();
-
-let Utils = function() {
+const Utils = function() {
     function removeNode(element, attribute, selector, metaErrorLabel="") {
         const node = document.querySelector(`${element}[${attribute}="${selector}"]`);
         if (metaErrorLabel !== "") metaErrorLabel += " ";
