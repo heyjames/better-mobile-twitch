@@ -1,5 +1,14 @@
 # better-mobile-twitch
-Use mobile twitch on desktop to have faster performance and increase battery life.
+
+This userscript allows some quality of life features on the mobile Twitch website. A user might want to use the mobile Twitch website on desktop since it has much better performance than the desktop version, which keeps the device cool and extends the battery life.
+
+### Features Overview
+* Automatically unmute when the page first loads
+* Hide box area in chat (username/tag/follow/game area) to show more of chat content
+* Remove chat input to show more of chat content
+* Hide chat
+* Hide navigation bar
+* Pop-out chat in new tab
 
 ## Original user interface
 ![](original-ui.png)
